@@ -18,6 +18,16 @@
 
     <!-- Styles -->
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
+
+    <style>
+        .scrollable-menu {
+        height: auto;
+        max-height: 500px;
+        width: 300px;
+        overflow-x: hidden;
+        }
+    </style>
+
 </head>
 <body>
     <div id="app">
@@ -51,10 +61,19 @@
                         @else
                             <li class="nav-item dropdown">
                                 <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                                    Notifications &nbsp;<span id="notification_count" class="btn bg-danger text-white btn-sm">0</span> &nbsp;
+                                </a>
+
+                                <div class="dropdown-menu dropdown-menu-right  scrollable-menu" aria-labelledby="navbarDropdown" id="notificationList">
+                                </div>
+                            </li>
+                            
+                            <li class="nav-item dropdown">
+                                <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                     {{ Auth::user()->name }} <span class="caret"></span>
                                 </a>
 
-                                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
+                                <div class="dropdown-menu dropdown-menu-right " aria-labelledby="navbarDropdown">
                                     <a class="dropdown-item" href="{{ route('logout') }}"
                                        onclick="event.preventDefault();
                                                      document.getElementById('logout-form').submit();">
@@ -76,5 +95,79 @@
             @yield('content')
         </main>
     </div>
+
+    <script src="{{ asset('js/Lei.js') }}" defer></script>
+
+    <script type="text/javascript">
+    
+        function redirect_link(id) {
+            httpAjax('post', '/ChangeStatus/' + id, {
+                data : {
+                    status : 1
+                }
+            }).then(res => {
+                if(res.success) {
+                    //window.location.href = link
+                }
+            });
+        }
+
+        window.onload = function() {
+            
+            $('#notification_count').hide();
+            var notif_count = 0;
+            var chk  = 0;
+
+            setInterval( () => {
+                httpAjax('get', '/getNotifications', {}).catch(errors => console.log(errors)).then(res => {
+                
+                    if(chk != res.checksum[0].Checksum) {
+                        chk = res.checksum[0].Checksum;
+                        notif_count = 0;
+
+                        if(res.notifications.length !== 0) {
+
+
+                            //Render Notifcation List
+                            $('#notificationList').empty();
+                                
+                            
+
+                            res.notifications.map( notif => {
+                                
+                                $('#notificationList').append('<a class="dropdown-item" onclick="event.preventDefault();redirect_link(' + notif.id + ')"><h5>' + (notif.isRead == 0 ? '<span class="badge badge-success"><small>New</small></span> &nbsp;' : '')  + notif.notif_title + '</h5><small class="text-secondary">' + notif.notif_message + '</small></a>')
+                                $('#notificationList').append('<div class="dropdown-divider"></div>');
+
+                                if(notif.isRead == 0) {
+                                    notif_count += 1;
+                                }
+                            });
+
+
+
+
+                            //Counter of Notications
+                            if(notif_count != 0) {
+                                $('#notification_count').show();
+                                $('#notification_count').text(notif_count);
+                                notif_count = 0;
+                            }else {
+                                $('#notification_count').hide();
+                            }
+
+
+                        }else {
+
+                            $('#notification_count').hide();
+
+                        }
+                    }
+                });
+
+            }, 2000);
+
+        }
+
+    </script>
 </body>
 </html>
